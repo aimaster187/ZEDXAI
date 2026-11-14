@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "269189310419-b61ab0eorp75oup4gcib0fjq41fcc9n6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.zedxai.tx7k9p",
+            "certificate_hash": "912921aa8404b9bc990443b27743f40d52f48842"
+          }
+        },
+        {
           "client_id": "269189310419-tfjh22nkh9fa5orb23vsrj5503q8ohjd.apps.googleusercontent.com",
           "client_type": 3
         }
