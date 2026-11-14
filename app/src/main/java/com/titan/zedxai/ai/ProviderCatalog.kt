@@ -10,6 +10,15 @@ enum class ProviderType(
     val supportsTools: Boolean,
     val isLocalEndpoint: Boolean = false
 ) {
+    GEMINI_API_KEY(
+        id = "gemini_api",
+        displayName = "Google Gemini (API Key)",
+        defaultBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai",
+        requiresApiKey = true,
+        isPaidThirdParty = true,
+        supportsVision = true,
+        supportsTools = true
+    ),
     GEMINI_AI_LOGIC(
         id = "gemini",
         displayName = "Gemini (Firebase AI Logic)",
@@ -123,7 +132,7 @@ enum class ProviderType(
 
     companion object {
         fun fromId(id: String): ProviderType =
-            entries.firstOrNull { it.id == id } ?: GEMINI_AI_LOGIC
+            entries.firstOrNull { it.id == id } ?: GEMINI_API_KEY
     }
 }
 
@@ -149,6 +158,11 @@ enum class TaskIntent(val label: String) {
 
 object ProviderCatalog {
     val models: List<AiModelSpec> = listOf(
+        // Google Gemini (Direct API Key - BYOK)
+        AiModelSpec("gemini-3.5-flash", "Gemini 3.5 Flash", "gemini_api", "1M", true, true, 0.0, "Latest fast multimodal & daily chat"),
+        AiModelSpec("gemini-3.5-pro", "Gemini 3.5 Pro", "gemini_api", "2M", true, true, 0.002, "Deep reasoning & complex coding"),
+        AiModelSpec("gemini-2.5-flash", "Gemini 2.5 Flash", "gemini_api", "1M", true, true, 0.0, "Stable ultra-fast responses"),
+
         // Gemini via Firebase AI Logic
         AiModelSpec("gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "1M", true, true, 0.0, "Default multimodal & fast reasoning"),
         AiModelSpec("gemini-3.5-flash-lite", "Gemini 3.5 Flash-Lite", "gemini", "1M", true, true, 0.0, "Ultra-fast lightweight tasks"),

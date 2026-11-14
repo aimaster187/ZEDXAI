@@ -3,7 +3,10 @@ import {
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 import {
@@ -20,7 +23,7 @@ import {
   setDoc,
   updateDoc
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
-import { FIREBASE_WEB_CONFIG, FIRESTORE_DATABASE_ID } from "./firebase-config.js";
+import { FIREBASE_WEB_CONFIG, FIRESTORE_DATABASE_ID, OWNER_EMAIL } from "./firebase-config.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -63,6 +66,8 @@ const googleProvider = new GoogleAuthProvider();
 let cachedUsers = [];
 
 async function verifyAdminClaims(user, forceRefresh = false) {
+  const email = (user.email || "").trim().toLowerCase();
+  if (email === OWNER_EMAIL.toLowerCase()) return true;
   const tokenResult = await user.getIdTokenResult(forceRefresh);
   const claims = tokenResult.claims || {};
   return claims.admin === true || claims.role === "admin";
@@ -224,17 +229,41 @@ async function refreshAllAdminData() {
   await Promise.all([loadUsers(), loadMetrics(), loadGlobalConfig(), loadAuditLogs()]);
 }
 
+getRedirectResult(auth).catch((err) => {
+  if (err && err.message) el("authStatusMsg").textContent = err.message;
+});
+
 el("googleSignInBtn").addEventListener("click", async () => {
-  if (hasPlaceholderConfig) {
-    showToast("Set Web apiKey and appId in firebase-config.js first.");
-    return;
-  }
+  el("authStatusMsg").textContent = "Opening Google Sign-In...";
   try {
     await signInWithPopup(auth, googleProvider);
   } catch (err) {
-    el("authStatusMsg").textContent = err.message;
+    if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request" || /popup/i.test(err.message)) {
+      await signInWithRedirect(auth, googleProvider);
+    } else {
+      el("authStatusMsg").textContent = "Login Error: " + err.message;
+    }
   }
 });
+
+const emailForm = el("emailLoginForm");
+if (emailForm) {
+  emailForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = el("adminEmailInput").value.trim();
+    const pass = el("adminPasswordInput").value;
+    if (email.toLowerCase() !== OWNER_EMAIL.toLowerCase()) {
+      el("authStatusMsg").textContent = "Access Denied: Only owner email is permitted.";
+      return;
+    }
+    el("authStatusMsg").textContent = "Signing in...";
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      el("authStatusMsg").textContent = "Login Error: " + err.message;
+    }
+  });
+}
 
 el("signOutBtn").addEventListener("click", () => signOut(auth));
 el("unauthSignOutBtn").addEventListener("click", () => signOut(auth));
@@ -295,6 +324,7 @@ onAuthStateChanged(auth, async (user) => {
     el("unauthEmail").textContent = user.email || user.uid;
     el("unauthorizedGate").classList.remove("hidden");
     el("adminDashboard").classList.add("hidden");
+    await signOut(auth);
     return;
   }
 

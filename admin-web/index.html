@@ -36,10 +36,16 @@
     <!-- Sign-in Gate -->
     <section id="authGate" class="glass card auth-card">
       <div class="orb-hero" aria-hidden="true">Z</div>
-      <h2>Trusted Admin Access</h2>
-      <p>Sign in with your Google administrator account. Access requires backend-verified Firebase custom claims (<code>admin: true</code>) for owner <code>pranavji628@gmail.com</code> or an authorized admin UID.</p>
+      <h2>Owner Admin Access Only</h2>
+      <p>Restricted strictly to owner <code>pranavji628@gmail.com</code>. Any other user is automatically blocked.</p>
       <p id="authStatusMsg" class="status-note"></p>
-      <button id="googleSignInBtn" class="btn btn-primary" type="button">Continue with Google</button>
+      <button id="googleSignInBtn" class="btn btn-primary" type="button" style="width:100%;max-width:340px;margin-bottom:14px;">Continue with Google</button>
+      <div style="margin:10px 0;opacity:0.75;font-size:13px;">— OR SIGN IN WITH ADMIN EMAIL &amp; PASSWORD —</div>
+      <form id="emailLoginForm" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px;margin:0 auto;">
+        <input id="adminEmailInput" class="input" type="email" value="pranavji628@gmail.com" placeholder="Admin Email" required />
+        <input id="adminPasswordInput" class="input" type="password" placeholder="Admin Password" required />
+        <button id="emailSignInBtn" class="btn btn-outline" type="submit">Login as Admin</button>
+      </form>
     </section>
 
     <!-- Unauthorized Claim Screen -->
