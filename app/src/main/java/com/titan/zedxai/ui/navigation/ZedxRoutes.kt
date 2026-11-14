@@ -1,0 +1,31 @@
+package com.titan.zedxai.ui.navigation
+
+enum class ZedxRoute(val route: String, val title: String) {
+    HOME("home", "Titan Home"),
+    CHAT("chat", "Titan Chat"),
+    HISTORY("history", "Chat History"),
+    AGENTS("agents", "Titan Crew"),
+    VOICE("voice", "Voice Assistant"),
+    EXPLORE("explore", "Explore Tools"),
+    PROVIDERS("providers", "Provider Manager"),
+    MODEL_SELECTOR("model_selector", "Model Selector"),
+    BROWSER("browser", "Crystal Browser"),
+    CODING_STUDIO("coding_studio", "Coding Studio"),
+    TERMINAL("terminal", "Safe Terminal"),
+    WEBSITE_BUILDER("website_builder", "Website Builder"),
+    APK_BUILDER("apk_builder", "APK Builder"),
+    AUTOMATION("automation", "Automation Center"),
+    FILE_MANAGER("file_manager", "File Manager"),
+    VISION_SCANNER("vision_scanner", "Vision & OCR"),
+    PDF_VIEWER("pdf_viewer", "Document & PDF"),
+    PHONE_ASSISTANT("phone_assistant", "Phone & Comms"),
+    NOTIFICATIONS("notifications", "Notifications"),
+    PROFILE("profile", "Profile"),
+    MEMORY("memory", "Memory Manager"),
+    SETTINGS("settings", "Settings"),
+    PRIVACY("privacy", "Privacy & Export"),
+    PERMISSIONS("permissions", "Permissions"),
+    HELP("help", "Help & Docs"),
+    ABOUT("about", "About ZEDX AI"),
+    DELETE_ACCOUNT("delete_account", "Delete Account")
+}

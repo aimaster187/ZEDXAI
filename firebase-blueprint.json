@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated ZEDX AI user profile, theme/language preferences, and quota metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "Verified Google account email" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "photoUrl": { "type": "string", "description": "Optional avatar URL" },
+        "role": { "type": "string", "enum": ["user", "moderator", "admin"], "description": "Account role controlled by trusted admin claims" },
+        "status": { "type": "string", "enum": ["active", "suspended"], "description": "Account status" },
+        "preferredLanguage": { "type": "string", "enum": ["en", "hi", "hinglish"], "description": "Assistant language" },
+        "preferredTheme": { "type": "string", "enum": ["white_crystal", "dark_space", "system"], "description": "UI theme" },
+        "dailyLimit": { "type": "integer", "description": "Daily request quota" },
+        "monthlyBudgetUsd": { "type": "number", "description": "Monthly budget cap in USD" },
+        "totalRequests": { "type": "integer", "description": "Total requests logged" },
+        "totalTokens": { "type": "integer", "description": "Total tokens consumed" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "email", "displayName", "role", "status", "preferredLanguage", "preferredTheme", "dailyLimit", "monthlyBudgetUsd", "createdAt", "updatedAt"]
+    },
+    "SyncedConversation": {
+      "title": "SyncedConversation",
+      "description": "Cloud-synced Titan Chat conversation metadata owned strictly by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "agentId": { "type": "string" },
+        "providerId": { "type": "string" },
+        "modelId": { "type": "string" },
+        "messageCount": { "type": "integer" },
+        "lastMessagePreview": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "agentId", "providerId", "modelId", "messageCount", "createdAt", "updatedAt"]
+    },
+    "SyncedMessage": {
+      "title": "SyncedMessage",
+      "description": "Individual message in a user-owned conversation.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "assistant", "system"] },
+        "content": { "type": "string" },
+        "providerId": { "type": "string" },
+        "modelId": { "type": "string" },
+        "agentId": { "type": "string" },
+        "tokensUsed": { "type": "integer" },
+        "attachmentSummary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "content", "providerId", "modelId", "createdAt"]
+    },
+    "UserMemory": {
+      "title": "UserMemory",
+      "description": "Persistent user-controlled personalization memory item (never stores secrets or tokens).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "content", "category", "enabled", "createdAt", "updatedAt"]
+    },
+    "AutomationWorkflow": {
+      "title": "AutomationWorkflow",
+      "description": "User-defined automation trigger and action workflow.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "triggerType": { "type": "string" },
+        "actionType": { "type": "string" },
+        "promptTemplate": { "type": "string" },
+        "requiresConfirmation": { "type": "boolean" },
+        "enabled": { "type": "boolean" },
+        "lastRunStatus": { "type": "string" },
+        "runCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "triggerType", "actionType", "promptTemplate", "requiresConfirmation", "enabled", "runCount", "createdAt", "updatedAt"]
+    },
+    "UsageMetric": {
+      "title": "UsageMetric",
+      "description": "Sanitized AI usage telemetry without prompt contents or API keys.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "providerId": { "type": "string" },
+        "modelId": { "type": "string" },
+        "tokensUsed": { "type": "integer" },
+        "estimatedCostUsd": { "type": "number" },
+        "latencyMs": { "type": "integer" },
+        "status": { "type": "string", "enum": ["success", "error", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "providerId", "modelId", "tokensUsed", "estimatedCostUsd", "latencyMs", "status", "createdAt"]
+    },
+    "SystemConfig": {
+      "title": "SystemConfig",
+      "description": "Global ZEDX AI configuration and provider availability managed by trusted admins.",
+      "type": "object",
+      "properties": {
+        "maintenanceMode": { "type": "boolean" },
+        "defaultProvider": { "type": "string" },
+        "defaultModel": { "type": "string" },
+        "allowedProviders": { "type": "array" },
+        "announcement": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["maintenanceMode", "defaultProvider", "defaultModel", "allowedProviders", "updatedBy", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Append-only administrative audit log entry.",
+      "type": "object",
+      "properties": {
+        "actorUid": { "type": "string" },
+        "actorEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetUid": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["actorUid", "actorEmail", "action", "details", "createdAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted admin role mapping document.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "grantedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile and preferences"
+    },
+    "/users/{userId}/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/SyncedConversation" },
+      "description": "User-isolated synced chat threads"
+    },
+    "/users/{userId}/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/SyncedMessage" },
+      "description": "User-isolated chat messages"
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/UserMemory" },
+      "description": "User-isolated persistent AI memories"
+    },
+    "/users/{userId}/automations/{automationId}": {
+      "schema": { "$ref": "#/entities/AutomationWorkflow" },
+      "description": "User-isolated automation workflows"
+    },
+    "/usage_metrics/{metricId}": {
+      "schema": { "$ref": "#/entities/UsageMetric" },
+      "description": "Aggregated non-sensitive usage telemetry"
+    },
+    "/system_config/{configId}": {
+      "schema": { "$ref": "#/entities/SystemConfig" },
+      "description": "Global platform configuration"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable admin audit log"
+    },
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Trusted admin registry"
+    }
+  }
+}

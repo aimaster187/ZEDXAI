@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">ZEDX AI</string>
+    <string name="brand_tagline">BY THE TITAN AI</string>
+    <string name="app_version_name">1.0.0</string>
+    <string name="accessibility_service_label">ZEDX AI Context Helper</string>
+    <string name="accessibility_service_description">Optional user-enabled assistant helper that reads visible non-sensitive screen context only when you explicitly invoke an action. Passwords, OTPs, CAPTCHAs, and payment fields are strictly excluded.</string>
+    <string name="sign_in_google">Continue with Google</string>
+    <string name="voice_channel_name">ZEDX Voice Session</string>
+    <string name="reminder_channel_name">ZEDX Reminders</string>
+    <string name="error_network">Network unavailable. Switched to offline-ready workspace.</string>
+    <string name="error_auth_cancelled">Google sign-in was cancelled. Tap Continue with Google to try again.</string>
+</resources>

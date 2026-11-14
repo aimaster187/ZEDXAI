@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZEDX AI Admin Console • BY THE TITAN AI</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="crystal-bg"></div>
+
+  <header class="topbar glass">
+    <div class="brand">
+      <div class="orb-badge" aria-hidden="true">Z</div>
+      <div>
+        <h1>ZEDX AI Admin Console</h1>
+        <p class="tagline">BY THE TITAN AI • v1.0.0 Governance</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="themeToggleBtn" class="btn btn-outline" type="button">Dark Space</button>
+      <div id="userChip" class="user-chip hidden">
+        <span id="userEmailLabel"></span>
+        <button id="signOutBtn" class="btn btn-danger-outline" type="button">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Config missing warning -->
+    <section id="configWarning" class="glass card hidden">
+      <h2>Firebase Web App Configuration Required</h2>
+      <p>Register a Web App in Firebase Console for project <code>gen-lang-client-0800058431</code> and set <code>apiKey</code> &amp; <code>appId</code> inside <code>admin-web/firebase-config.js</code>.</p>
+    </section>
+
+    <!-- Sign-in Gate -->
+    <section id="authGate" class="glass card auth-card">
+      <div class="orb-hero" aria-hidden="true">Z</div>
+      <h2>Trusted Admin Access</h2>
+      <p>Sign in with your Google administrator account. Access requires backend-verified Firebase custom claims (<code>admin: true</code>) for owner <code>pranavji628@gmail.com</code> or an authorized admin UID.</p>
+      <p id="authStatusMsg" class="status-note"></p>
+      <button id="googleSignInBtn" class="btn btn-primary" type="button">Continue with Google</button>
+    </section>
+
+    <!-- Unauthorized Claim Screen -->
+    <section id="unauthorizedGate" class="glass card auth-card hidden">
+      <h2>Admin Custom Claim Required</h2>
+      <p>Signed in as <strong id="unauthEmail"></strong>, but this account does not hold the backend-controlled <code>admin: true</code> Firebase Auth custom claim.</p>
+      <p class="muted">Normal users cannot promote themselves to Admin. Run the Firebase Admin SDK script documented in <code>admin-web/README.md</code> to grant custom claims to <code>pranavji628@gmail.com</code>, then click Re-check Claims.</p>
+      <div class="row-gap">
+        <button id="recheckClaimsBtn" class="btn btn-primary" type="button">Re-check Claims</button>
+        <button id="unauthSignOutBtn" class="btn btn-outline" type="button">Switch Account</button>
+      </div>
+    </section>
+
+    <!-- Main Admin Console -->
+    <section id="adminDashboard" class="hidden">
+      <nav class="tabs glass" aria-label="Admin sections">
+        <button class="tab-btn active" data-tab="overview">System Health</button>
+        <button class="tab-btn" data-tab="users">Users &amp; Roles</button>
+        <button class="tab-btn" data-tab="config">Global Config</button>
+        <button class="tab-btn" data-tab="audit">Audit Logs</button>
+      </nav>
+
+      <!-- Overview & Telemetry -->
+      <div id="tab-overview" class="tab-panel">
+        <div class="stats-grid">
+          <div class="glass stat-card">
+            <span class="stat-label">Registered Users</span>
+            <strong id="statTotalUsers" class="stat-value">0</strong>
+          </div>
+          <div class="glass stat-card">
+            <span class="stat-label">Tracked AI Runs</span>
+            <strong id="statTotalRuns" class="stat-value">0</strong>
+          </div>
+          <div class="glass stat-card">
+            <span class="stat-label">Total Tokens Logged</span>
+            <strong id="statTotalTokens" class="stat-value">0</strong>
+          </div>
+          <div class="glass stat-card">
+            <span class="stat-label">Privacy Isolation</span>
+            <strong class="stat-value ok">Zero-Trust</strong>
+          </div>
+        </div>
+
+        <div class="glass card">
+          <div class="card-header">
+            <h3>Provider Usage &amp; Health Telemetry</h3>
+            <button id="refreshMetricsBtn" class="btn btn-outline" type="button">Refresh</button>
+          </div>
+          <p class="muted">Aggregated non-content metrics from <code>/usage_metrics</code>. Private user chats, memories, and on-device AES-256-GCM API keys are never accessible here.</p>
+          <div id="providerBreakdown" class="bars-list"></div>
+        </div>
+      </div>
+
+      <!-- Users & Roles -->
+      <div id="tab-users" class="tab-panel hidden">
+        <div class="glass card">
+          <div class="card-header">
+            <h3>User Quotas, Status &amp; Role Governance</h3>
+            <input id="userSearchInput" class="input" type="search" placeholder="Search email, name, or UID..." />
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Daily Limit</th>
+                  <th>Monthly Budget ($)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Global System Config -->
+      <div id="tab-config" class="tab-panel hidden">
+        <div class="glass card">
+          <h3>Global System Configuration (<code>/system_config/global</code>)</h3>
+          <form id="globalConfigForm" class="form-stack">
+            <label>
+              Default Gemini Model
+              <input id="cfgDefaultModel" class="input" type="text" value="gemini-3.8-flash" required />
+            </label>
+            <label>
+              Platform Announcement Banner
+              <input id="cfgAnnouncement" class="input" type="text" placeholder="Optional announcement shown on Home..." />
+            </label>
+            <label>
+              Allowed Providers (comma-separated)
+              <input id="cfgAllowedProviders" class="input" type="text" value="gemini,openai,openrouter,claude,groq,deepseek,mistral,together,fireworks,ollama,lm_studio,custom_openai" />
+            </label>
+            <label class="checkbox-row">
+              <input id="cfgMaintenanceMode" type="checkbox" />
+              <span>Enable Maintenance Mode Notice</span>
+            </label>
+            <button class="btn btn-primary" type="submit">Save Global Config &amp; Write Audit Log</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Audit Logs -->
+      <div id="tab-audit" class="tab-panel hidden">
+        <div class="glass card">
+          <div class="card-header">
+            <h3>Immutable Admin Audit Logs (<code>/audit_logs</code>)</h3>
+            <button id="refreshAuditBtn" class="btn btn-outline" type="button">Refresh</button>
+          </div>
+          <div id="auditLogsList" class="audit-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

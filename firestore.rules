@@ -1,0 +1,298 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default-Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasAdminClaim() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        (('admin' in request.auth.token && request.auth.token.admin == true) ||
+         ('role' in request.auth.token && request.auth.token.role == 'admin'));
+    }
+
+    function isAdmin() {
+      return hasAdminClaim() ||
+        (isSignedIn() &&
+         request.auth.token.email_verified == true &&
+         exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+        data.role in ['user', 'moderator', 'admin'] &&
+        data.status in ['active', 'suspended'] &&
+        data.preferredLanguage in ['en', 'hi', 'hinglish'] &&
+        data.preferredTheme in ['white_crystal', 'dark_space', 'system'] &&
+        data.dailyLimit is int && data.dailyLimit >= 1 && data.dailyLimit <= 100000 &&
+        (data.monthlyBudgetUsd is int || data.monthlyBudgetUsd is float) &&
+        data.monthlyBudgetUsd >= 0 && data.monthlyBudgetUsd <= 10000 &&
+        (!('totalRequests' in data) || (data.totalRequests is int && data.totalRequests >= 0)) &&
+        (!('totalTokens' in data) || (data.totalTokens is int && data.totalTokens >= 0)) &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidConversation(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+        data.agentId is string && data.agentId.size() >= 1 && data.agentId.size() <= 64 &&
+        data.providerId is string && data.providerId.size() >= 1 && data.providerId.size() <= 64 &&
+        data.modelId is string && data.modelId.size() >= 1 && data.modelId.size() <= 128 &&
+        data.messageCount is int && data.messageCount >= 0 && data.messageCount <= 5000 &&
+        (!('lastMessagePreview' in data) || data.lastMessagePreview == null || (data.lastMessagePreview is string && data.lastMessagePreview.size() <= 300)) &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMessage(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.role in ['user', 'assistant', 'system'] &&
+        data.content is string && data.content.size() >= 1 && data.content.size() <= 50000 &&
+        data.providerId is string && data.providerId.size() >= 1 && data.providerId.size() <= 64 &&
+        data.modelId is string && data.modelId.size() >= 1 && data.modelId.size() <= 128 &&
+        (!('agentId' in data) || data.agentId == null || (data.agentId is string && data.agentId.size() <= 64)) &&
+        (!('tokensUsed' in data) || (data.tokensUsed is int && data.tokensUsed >= 0 && data.tokensUsed <= 1000000)) &&
+        (!('attachmentSummary' in data) || data.attachmentSummary == null || (data.attachmentSummary is string && data.attachmentSummary.size() <= 500)) &&
+        data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidMemory(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.content is string && data.content.size() >= 1 && data.content.size() <= 2000 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 64 &&
+        data.enabled is bool &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAutomation(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.triggerType is string && data.triggerType.size() >= 1 && data.triggerType.size() <= 64 &&
+        data.actionType is string && data.actionType.size() >= 1 && data.actionType.size() <= 64 &&
+        data.promptTemplate is string && data.promptTemplate.size() >= 1 && data.promptTemplate.size() <= 2000 &&
+        data.requiresConfirmation is bool &&
+        data.enabled is bool &&
+        (!('lastRunStatus' in data) || data.lastRunStatus == null || (data.lastRunStatus is string && data.lastRunStatus.size() <= 200)) &&
+        data.runCount is int && data.runCount >= 0 && data.runCount <= 1000000 &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUsageMetric(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.providerId is string && data.providerId.size() >= 1 && data.providerId.size() <= 64 &&
+        data.modelId is string && data.modelId.size() >= 1 && data.modelId.size() <= 128 &&
+        data.tokensUsed is int && data.tokensUsed >= 0 && data.tokensUsed <= 2000000 &&
+        (data.estimatedCostUsd is int || data.estimatedCostUsd is float) &&
+        data.estimatedCostUsd >= 0 && data.estimatedCostUsd <= 1000 &&
+        data.latencyMs is int && data.latencyMs >= 0 && data.latencyMs <= 600000 &&
+        data.status in ['success', 'error', 'cancelled'] &&
+        data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidSystemConfig(data) {
+      return data.maintenanceMode is bool &&
+        data.defaultProvider is string && data.defaultProvider.size() >= 1 && data.defaultProvider.size() <= 64 &&
+        data.defaultModel is string && data.defaultModel.size() >= 1 && data.defaultModel.size() <= 128 &&
+        data.allowedProviders is list && data.allowedProviders.size() <= 20 &&
+        (data.allowedProviders.size() == 0 || data.allowedProviders[0] is string) &&
+        (!('announcement' in data) || data.announcement == null || (data.announcement is string && data.announcement.size() <= 500)) &&
+        data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 200 &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAuditLog(data) {
+      return data.actorUid is string && data.actorUid == request.auth.uid &&
+        data.actorEmail is string && data.actorEmail.size() >= 3 && data.actorEmail.size() <= 200 &&
+        data.action is string && data.action.size() >= 1 && data.action.size() <= 128 &&
+        (!('targetUid' in data) || data.targetUid == null || (data.targetUid is string && data.targetUid.size() <= 128)) &&
+        data.details is string && data.details.size() >= 1 && data.details.size() <= 1000 &&
+        data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // 4. Collection Rules
+    // Users collection: PII isolated to owner and verified admin (role/status cannot be self-elevated)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId) &&
+        isOwner(userId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().role == 'user' &&
+        incoming().status == 'active' &&
+        incoming().keys().hasAll(['userId', 'email', 'displayName', 'role', 'status', 'preferredLanguage', 'preferredTheme', 'dailyLimit', 'monthlyBudgetUsd', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['userId', 'email', 'displayName', 'photoUrl', 'role', 'status', 'preferredLanguage', 'preferredTheme', 'dailyLimit', 'monthlyBudgetUsd', 'totalRequests', 'totalTokens', 'createdAt', 'updatedAt']) &&
+        isValidUserProfile(incoming());
+
+      allow update: if isValidId(userId) &&
+        isSignedIn() &&
+        isValidUserProfile(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().email == existing().email &&
+        incoming().createdAt == existing().createdAt &&
+        (
+          (isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoUrl', 'role', 'status', 'preferredLanguage', 'preferredTheme', 'dailyLimit', 'monthlyBudgetUsd', 'totalRequests', 'totalTokens', 'updatedAt'])) ||
+          (isOwner(userId) &&
+            incoming().role == existing().role &&
+            incoming().status == existing().status &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoUrl', 'preferredLanguage', 'preferredTheme', 'dailyLimit', 'monthlyBudgetUsd', 'totalRequests', 'totalTokens', 'updatedAt']))
+        );
+
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+      // Private Conversations: Strictly user-only (never exposed to admins)
+      match /conversations/{conversationId} {
+        allow get: if isValidId(userId) && isValidId(conversationId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(conversationId) &&
+          isOwner(userId) &&
+          incoming().keys().hasAll(['userId', 'title', 'agentId', 'providerId', 'modelId', 'messageCount', 'createdAt', 'updatedAt']) &&
+          incoming().keys().hasOnly(['userId', 'title', 'agentId', 'providerId', 'modelId', 'messageCount', 'lastMessagePreview', 'createdAt', 'updatedAt']) &&
+          isValidConversation(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(conversationId) &&
+          isOwner(userId) &&
+          isValidConversation(incoming(), userId) &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'agentId', 'providerId', 'modelId', 'messageCount', 'lastMessagePreview', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(conversationId) && isOwner(userId);
+
+        match /messages/{messageId} {
+          allow get: if isValidId(userId) && isValidId(conversationId) && isValidId(messageId) && isOwner(userId);
+          allow list: if isValidId(userId) && isValidId(conversationId) && isOwner(userId);
+
+          allow create: if isValidId(userId) && isValidId(conversationId) && isValidId(messageId) &&
+            isOwner(userId) &&
+            incoming().keys().hasAll(['userId', 'role', 'content', 'providerId', 'modelId', 'createdAt']) &&
+            incoming().keys().hasOnly(['userId', 'role', 'content', 'providerId', 'modelId', 'agentId', 'tokensUsed', 'attachmentSummary', 'createdAt']) &&
+            isValidMessage(incoming(), userId);
+
+          allow update: if false;
+          allow delete: if isValidId(userId) && isValidId(conversationId) && isValidId(messageId) && isOwner(userId);
+        }
+      }
+
+      // Private User Memories: Strictly user-only
+      match /memories/{memoryId} {
+        allow get: if isValidId(userId) && isValidId(memoryId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(memoryId) &&
+          isOwner(userId) &&
+          incoming().keys().hasAll(['userId', 'title', 'content', 'category', 'enabled', 'createdAt', 'updatedAt']) &&
+          incoming().keys().hasOnly(['userId', 'title', 'content', 'category', 'enabled', 'createdAt', 'updatedAt']) &&
+          isValidMemory(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(memoryId) &&
+          isOwner(userId) &&
+          isValidMemory(incoming(), userId) &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'enabled', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(memoryId) && isOwner(userId);
+      }
+
+      // User Automations: Strictly user-only
+      match /automations/{automationId} {
+        allow get: if isValidId(userId) && isValidId(automationId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(automationId) &&
+          isOwner(userId) &&
+          incoming().keys().hasAll(['userId', 'name', 'triggerType', 'actionType', 'promptTemplate', 'requiresConfirmation', 'enabled', 'runCount', 'createdAt', 'updatedAt']) &&
+          incoming().keys().hasOnly(['userId', 'name', 'triggerType', 'actionType', 'promptTemplate', 'requiresConfirmation', 'enabled', 'lastRunStatus', 'runCount', 'createdAt', 'updatedAt']) &&
+          isValidAutomation(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(automationId) &&
+          isOwner(userId) &&
+          isValidAutomation(incoming(), userId) &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'triggerType', 'actionType', 'promptTemplate', 'requiresConfirmation', 'enabled', 'lastRunStatus', 'runCount', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(automationId) && isOwner(userId);
+      }
+    }
+
+    // Sanitized Usage Metrics (No PII, no conversation text, no API keys)
+    match /usage_metrics/{metricId} {
+      allow get: if isValidId(metricId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isValidId(metricId) &&
+        isSignedIn() &&
+        incoming().userId == request.auth.uid &&
+        incoming().keys().hasAll(['userId', 'providerId', 'modelId', 'tokensUsed', 'estimatedCostUsd', 'latencyMs', 'status', 'createdAt']) &&
+        incoming().keys().hasOnly(['userId', 'providerId', 'modelId', 'tokensUsed', 'estimatedCostUsd', 'latencyMs', 'status', 'createdAt']) &&
+        isValidUsageMetric(incoming());
+
+      allow update, delete: if false;
+    }
+
+    // Global System Config (Readable by signed-in users, writable only by trusted Admin)
+    match /system_config/{configId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isValidId(configId) &&
+        isAdmin() &&
+        incoming().keys().hasAll(['maintenanceMode', 'defaultProvider', 'defaultModel', 'allowedProviders', 'updatedBy', 'updatedAt']) &&
+        incoming().keys().hasOnly(['maintenanceMode', 'defaultProvider', 'defaultModel', 'allowedProviders', 'announcement', 'updatedBy', 'updatedAt']) &&
+        isValidSystemConfig(incoming());
+      allow delete: if isValidId(configId) && isAdmin();
+    }
+
+    // Immutable Admin Audit Logs
+    match /audit_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(logId) &&
+        isAdmin() &&
+        incoming().keys().hasAll(['actorUid', 'actorEmail', 'action', 'details', 'createdAt']) &&
+        incoming().keys().hasOnly(['actorUid', 'actorEmail', 'action', 'targetUid', 'details', 'createdAt']) &&
+        isValidAuditLog(incoming());
+      allow update, delete: if false;
+    }
+
+    // Trusted Admin Registry (Writeable only via backend Admin SDK or existing custom-claim Admin)
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && (isOwner(uid) || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if isValidId(uid) && hasAdminClaim();
+    }
+  }
+}

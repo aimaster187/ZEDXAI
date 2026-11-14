@@ -1,0 +1,6 @@
+{
+  "name": "ZEDX AI",
+  "description": "ZEDX AI by The Titan AI — multi-provider Android AI assistant ecosystem with Gemini AI Logic, Titan Crew agents, voice assistant, developer tools, and separate Admin Website.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
